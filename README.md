@@ -1,6 +1,6 @@
 # picod
 
-This is a fork of [picod](https://abyz.me.uk/picod/index.html), fixing bugs in the picod daemon.
+This is a fork of [picod](https://github.com/joan2937/picod), fixing bugs in the picod daemon.
 
 While the daemon can be built and used independently of [gpiosvr](https://github.com/xoocoon/gpiosvr), it was developed and tested in the scope of that project.
 
@@ -12,7 +12,7 @@ The first step is to install the Pico SDK as described on the Raspberry page [Th
 
 In April 2026, the [SDK installation script](https://raw.githubusercontent.com/raspberrypi/pico-setup/master/pico_setup.sh) has proven functional on a Raspberry Pi 5.
 
-Follow-up steps are as follows:
+Building the daemon is simple:
 
 ```
 git clone https://github.com/xoocoon/picod
