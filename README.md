@@ -1,25 +1,26 @@
-# picod Package
+# picod
 
-picod is an archive of programs which allow control of the Raspberry Pi Pico microcontroller.
+This is a fork of [picod](https://abyz.me.uk/picod/index.html), fixing bugs in the picod daemon.
 
+While the daemon can be built and used independently of [gpiosvr](https://github.com/xoocoon/gpiosvr), it was developed and tested in the scope of that project.
 
-## Features
+# Installation
 
-* reading and writing GPIO singly and in groups
-* hardware PWM
-* hardware Servo pulses
-* Read PWM frequency, dutycycle, and high edges
-* callbacks on GPIO level change
-* I2C wrapper
-* SPI wrapper
-* serial link wrapper
-* ADC
+Original build instructions can be found on the picod page [Download & Install](https://abyz.me.uk/picod/download.html).
 
-## Components
+The first step is to install the Pico SDK as described on the Raspberry page [The C/C++ SDK](https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html). As an ARM architecture is required, it is recommended to install the SDK on a Raspberry Pi.
 
-The archive contains the following:
+In April 2026, the [SDK installation script](https://raw.githubusercontent.com/raspberrypi/pico-setup/master/pico_setup.sh) has proven functional on a Raspberry Pi 5.
 
-* The pico daemon which runs on the Pico. This is a C program (picod.c) which provides a command interpreter. It accepts commands via a serial link.
-* The picod Python module to control the Pico. This is a Python program (picod.py) which runs user scripts. It sends commands to the pico daemon via a serial link.
-* Example Python scripts.
+Follow-up steps are as follows:
 
+```
+git clone https://github.com/xoocoon/picod
+cd picod/DAEMON
+cmake .
+make
+```
+
+The `picod.uf2` file should have been generated directly in the `DAEMON` directory.
+
+To transfer it to the target Pico device, hold down its “BOOT/SEL” button, while connecting it to the Raspberry Pi via USB. In a file browser of your choice, copy the file to the `RPI-RP2` volume. After the automatic reboot, the Pico will run the daemon.
