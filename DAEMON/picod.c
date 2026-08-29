@@ -434,6 +434,8 @@ static const uint16_t crctab[256] =
 
 /* init once only */
 
+static uint8_t RES[32768];
+
 callbk_t _GETCHAR;
 callbk_t _PUTCHAR;
 
@@ -747,6 +749,27 @@ void my_spi_handler()
    }
 }
 
+static inline void pd_trace(int code)
+{
+   volatile int i;
+
+   /* pd_init() calls gpio_init() on every non-reserved GPIO including
+      LED_PIN, which resets it back to input mode. Re-assert output
+      mode here defensively so tracing keeps working even after any
+      future pd_init() call, without relying on excluding GPIO 25
+      from the reserved-pin list elsewhere. */
+   gpio_set_dir(LED_PIN, GPIO_OUT);
+
+   for (i = 0; i < code; i++)
+   {
+      gpio_put(LED_PIN, 1);
+      sleep_ms(250);
+      gpio_put(LED_PIN, 0);
+      sleep_ms(250);
+   }
+   sleep_ms(2750);
+}
+
 int is_func_okay(uint gpio, uint mode, uint submode, uint channel, uint8_t *fnc)
 {
    uint8_t buf[128];
@@ -767,6 +790,7 @@ int is_func_okay(uint gpio, uint mode, uint submode, uint channel, uint8_t *fnc)
 
    if (pd_config[gpio].func != PD_FUNC_FREE)
    {
+      pd_trace(gpio+1);
       sprintf(buf, "GPIO #%d already in use", gpio);
       fatal(buf);
       return STATUS_GPIO_IN_USE;
@@ -961,6 +985,7 @@ void pd_free_func(uint func, uint channel)
    }
 }
 
+
 void spiAssertCS(uint gpio, bool set)
 {
    if (set)
@@ -977,7 +1002,6 @@ void spiAssertCS(uint gpio, bool set)
 
 int cmdExec(uint8_t *cBuf)
 {
-   uint8_t RES[32768];
    int cmd;
 
    uint channel, clkdiv, gpio, tx, rx, rts, cts, bits, stops, parity,
@@ -2310,10 +2334,19 @@ int cmdExec(uint8_t *cBuf)
          {
             if (g.uartInited[channel])
             {
-               pd_free_func(PD_FUNC_UART, channel);
-
-               uart_deinit(UART[channel]);
+               uart_set_irq_enables(UART[channel], false, false);
                irq_set_enabled(UARTIRQ[channel], false);
+               pd_free_func(PD_FUNC_UART, channel);
+               bufReset(EVT_UART_0_RX+channel);
+               
+               /* Deliberately NOT calling uart_deinit()/reset_block() here.
+               Both were confirmed experimentally to disturb the USB-CDC link,
+               causing STATUS_NO_REPLY on this and subsequent commands.
+               Disabling IRQs and releasing the GPIO pins is sufficient to make
+               the channel appear closed and safe to re-open; the UART
+               peripheral itself remains clocked but inert (no pins attached,
+               no interrupts enabled). The next UART_OPEN reinitialises it fully
+               via uart_init() anyway. */
             }
 
             g.uartInited[channel] = 0;
