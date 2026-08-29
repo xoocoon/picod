@@ -12,15 +12,23 @@ The first step is to install the Pico SDK as described on the Raspberry page [Th
 
 In April 2026, the [SDK installation script](https://raw.githubusercontent.com/raspberrypi/pico-setup/master/pico_setup.sh) has proven functional on a Raspberry Pi 5.
 
-Building the daemon is simple:
+Building the daemon for a Pico 1 device is simple:
 
 ```
 git clone https://github.com/xoocoon/picod
 cd picod/DAEMON
 cmake .
-make
+make -j$(nproc)
 ```
 
 The `picod.uf2` file should have been generated directly in the `DAEMON` directory.
 
-To transfer it to the target Pico device, hold down its “BOOT/SEL” button, while connecting it to the Raspberry Pi via USB. In a file browser of your choice, copy the file to the `RPI-RP2` volume. After the automatic reboot, the Pico will run the daemon.
+To build the daemon for a Pico 2 device, adjust the `cmake` command as follows:
+
+```
+cmake -DPICO_BOARD=pico2 .
+```
+
+Make sure to point CMake to the path of the Pico SDK, either by setting and exporting a `PICO_SDK_PATH` environment variable or by adding a `-DPICO_SDK_PATH` argument to the `cmake` call.
+
+To transfer the binary to the target Pico device, hold down its “BOOT/SEL” button, while connecting it to the build machine via USB. In a file browser of your choice, copy the file to the `RPI-RP2` (Pico 1) or `RP2350` (Pico 2) volume. After the automatic reboot, the Pico will run the daemon.
