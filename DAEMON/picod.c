@@ -985,6 +985,32 @@ void pd_free_func(uint func, uint channel)
    }
 }
 
+/* Minimal UART bring-up WITHOUT calling reset_block()/unreset_block() on the
+ * UART peripheral. uart_init() from the SDK always performs that reset cycle
+ * internally, and on this hardware/setup that has been confirmed -- 
+ * experimentally, multiple times, independent of timing -- to disturb the
+ * USB-CDC link, regardless of when it is called relative to stdio_init_all(). 
+ * Peripherals come out of reset automatically as part of the RP2040 boot
+ * sequence, so re-resetting the UART block here is unnecessary; we just need
+ * to enable it and set the desired configuration directly.
+ */
+static inline uint pd_uart_init_no_reset(uart_inst_t *uart, uint baudrate)
+{
+   /* enable the clock to the peripheral is already done by the boot
+      sequence; ensure UARTEN + peripheral clock enable bits are set
+      via the control register directly instead of via uart_init() */
+
+   hw_clear_bits(&uart_get_hw(uart)->cr, UART_UARTCR_UARTEN_BITS);
+
+   uint baud = uart_set_baudrate(uart, baudrate);
+
+   uart_set_format(uart, 8, 1, UART_PARITY_NONE);
+
+   hw_set_bits(&uart_get_hw(uart)->cr,
+      UART_UARTCR_UARTEN_BITS | UART_UARTCR_RXE_BITS | UART_UARTCR_TXE_BITS);
+
+   return baud;
+}
 
 void spiAssertCS(uint gpio, bool set)
 {
@@ -2271,7 +2297,7 @@ int cmdExec(uint8_t *cBuf)
 
             g.uartInited[channel] = 1;
 
-            uart_init(UART[channel], 2400);
+            pd_uart_init_no_reset(UART[channel], 2400);
 
             if (tx != 255)
             {
@@ -3001,33 +3027,9 @@ int main()
 
    stdio_init_all();
 
-   if (PD_LINK == PD_LINK_UART)
-   {
-      uart_init(UART[0], 230400);
-      gpio_set_function(0, GPIO_FUNC_UART);
-      gpio_set_function(1, GPIO_FUNC_UART);
-
-      uart_set_baudrate(UART[0], 230400);
-
-      uart_set_hw_flow(UART[0], false, false);
-
-      uart_set_format(UART[0], 8, 1, UART_PARITY_NONE);
-
-      uart_set_fifo_enabled(UART[0], true);
-
-      irq_set_exclusive_handler(UART0_IRQ, my_uart_handler);
-      irq_set_enabled(UART0_IRQ, true);
-      uart_set_irq_enables(UART[0], true, false);
-      _PUTCHAR = putuartchar;
-      _GETCHAR = getuartchar;
-   }
-   else
-   {
-      stdio_set_translate_crlf(&stdio_usb, false);
-      _PUTCHAR = putchar;
-      _GETCHAR = getchar_timeout_us;
-   }
-
+   stdio_set_translate_crlf(&stdio_usb, false);
+   _PUTCHAR = putchar;
+   _GETCHAR = getchar_timeout_us;
 
    pd_init();
 

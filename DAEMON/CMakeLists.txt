@@ -7,7 +7,7 @@ pico_sdk_init()
 add_executable(picod picod.c)
 
 pico_enable_stdio_usb(picod 1)
-pico_enable_stdio_uart(picod 0)
+# pico_enable_stdio_uart(picod 0) # This line links pico_stdio_uart even though UART stdio is being disabled (0).
 
 pico_add_extra_outputs(picod)
 
